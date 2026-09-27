@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme inline {
+    --font-sans: 'Lilita One', system-ui, sans-serif;
+    --font-display: 'Lilita One', system-ui, sans-serif;
+    --color-cosmo-950: #060b18;
+    --color-cosmo-900: #0b1528;
+    --color-cosmo-800: #12203a;
+    --color-cosmo-700: #1a2f52;
+    --color-accent: #7dd3fc;
+    --color-accent-2: #e2e8f0;
+    --color-ok: #34d399;
+    --color-ko: #fb7185;
+    --color-opcion-a: #ef4444;
+    --color-opcion-b: #3b82f6;
+    --color-opcion-c: #f59e0b;
+    --color-opcion-d: #22c55e;
+}
+
+@layer base {
+    body {
+        @apply bg-cosmo-950 font-sans text-slate-100 antialiased;
+        background-image:
+            radial-gradient(ellipse 80% 50% at 50% -20%, rgb(148 163 184 / 0.12), transparent),
+            radial-gradient(ellipse 60% 40% at 100% 100%, rgb(100 116 139 / 0.08), transparent);
+        min-height: 100dvh;
+        letter-spacing: 0.02em;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+        font-family: inherit;
+    }
+}
+
+@layer components {
+    .btn-cosmo {
+        @apply inline-flex items-center justify-center rounded-full bg-slate-100 px-5 py-2.5 text-base tracking-wide text-slate-900 transition hover:bg-white active:scale-95 disabled:opacity-50;
+    }
+
+    .btn-ghost {
+        @apply inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-base tracking-wide text-slate-100 transition hover:bg-white/15 active:scale-95;
+    }
+
+    .panel-cosmo {
+        @apply rounded-3xl border border-white/15 bg-slate-950/55 p-6 shadow-[0_20px_60px_rgb(0_0_0_/_.4)] backdrop-blur-md;
+    }
+
+    .campo {
+        @apply w-full rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-center text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-400/30;
+    }
+
+    .titulo-cosmo {
+        @apply font-display text-3xl tracking-wide text-slate-100 md:text-4xl;
+    }
+
+    .pin-gigante {
+        @apply font-display text-6xl tracking-[0.15em] text-slate-100 md:text-8xl;
+    }
+
+    .btn-respuesta {
+        @apply flex min-h-0 w-full flex-1 items-center justify-center rounded-2xl px-4 py-3 text-center text-lg leading-snug tracking-wide text-white shadow-lg transition active:scale-95 disabled:opacity-60 sm:text-xl;
+    }
+
+    .enunciado-pregunta {
+        @apply font-display text-center text-3xl leading-tight tracking-wide text-slate-50 md:text-4xl lg:text-5xl;
+    }
+}
