@@ -15,9 +15,9 @@ composer run dev
 
 ## Despliegue (Dokploy)
 
-Repo: se crea en GitHub al publicar.
+Repo: https://github.com/albergm98/amenhoot
 
-1. En Dokploy: **Create Application** → Provider **GitHub** → este repo → branch `main`.
+1. En Dokploy: **Create Application** → Provider **GitHub** → `albergm98/amenhoot` → branch `main`.
 2. **Build Type**: `Dockerfile` (ruta `Dockerfile`, context `.`).
 3. Puerto publicado: **80**.
 4. Variables de entorno mínimas:
