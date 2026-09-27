@@ -26,7 +26,7 @@ COPY public ./public
 
 RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
     && php artisan package:discover --ansi \
-    && npm ci \
+    && npm install \
     && npm run build
 
 FROM php:8.4-fpm-alpine
