@@ -5,7 +5,7 @@ import PodioFinal from '@/components/PodioFinal.vue'
 import { usePartidaEnVivo } from '@/composables/usePartidaEnVivo'
 import { useSonido } from '@/composables/useSonido'
 import { Head, router } from '@inertiajs/vue3'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 type Jugador = {
     id: number
@@ -65,8 +65,10 @@ let avisoCopia: number | null = null
 let temporizadorInicio: number | null = null
 let temporizador: number | null = null
 let pausa: number | null = null
+let sondeoSala: number | null = null
 let cerrando = false
 let lanzandoInicio = false
+const preparandoInicio = ref(false)
 
 const copiarPin = async () => {
     try {
@@ -213,20 +215,52 @@ usePartidaEnVivo(props.partida.pin, props.partida.id, {
         pararMusicaSala()
     },
     onPartidaPorEmpezar: (payload) => {
+        if (cuentaAtrasInicio.value !== null) {
+            return
+        }
         const segundos = (payload.segundos as number) ?? 5
-        arrancarCuentaInicio(segundos, () => {
-            if (lanzandoInicio) {
-                return
-            }
-            lanzandoInicio = true
-            iniciarPregunta()
-        })
+        arrancarCuentaInicio(segundos, lanzarTrasCuentaAtras)
     },
 })
+
+watch(estado, (nuevo) => {
+    if (nuevo === 'esperando_jugadores') {
+        arrancarSondeoSala()
+        return
+    }
+    pararSondeoSala()
+})
+
+const pararSondeoSala = () => {
+    if (sondeoSala) {
+        clearInterval(sondeoSala)
+        sondeoSala = null
+    }
+}
+
+const arrancarSondeoSala = () => {
+    pararSondeoSala()
+    sondeoSala = window.setInterval(() => {
+        if (estado.value !== 'esperando_jugadores' || cuentaAtrasInicio.value !== null) {
+            return
+        }
+        router.reload({
+            only: ['partida'],
+            preserveScroll: true,
+            preserveState: true,
+        })
+    }, 2500)
+}
 
 if (estado.value === 'esperando_jugadores') {
     iniciarMusicaSala()
 }
+
+onMounted(() => {
+    if (estado.value === 'esperando_jugadores') {
+        arrancarSondeoSala()
+    }
+})
 
 onUnmounted(() => {
     if (temporizador) {
@@ -235,6 +269,7 @@ onUnmounted(() => {
     if (avisoCopia) {
         clearTimeout(avisoCopia)
     }
+    pararSondeoSala()
     pararCuentaInicio()
     pararPausa()
 })
@@ -244,11 +279,33 @@ const iniciarPregunta = () => router.post(`/partidas/${props.partida.id}/iniciar
         lanzandoInicio = false
     },
 })
-const prepararInicio = () => {
-    if (cuentaAtrasInicio.value !== null || !jugadores.value.length) {
+
+const lanzarTrasCuentaAtras = () => {
+    if (lanzandoInicio) {
         return
     }
-    router.post(`/partidas/${props.partida.id}/preparar-inicio`)
+    lanzandoInicio = true
+    pararSondeoSala()
+    iniciarPregunta()
+}
+
+const prepararInicio = () => {
+    if (preparandoInicio.value || cuentaAtrasInicio.value !== null || !jugadores.value.length) {
+        return
+    }
+    preparandoInicio.value = true
+    router.post(`/partidas/${props.partida.id}/preparar-inicio`, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (cuentaAtrasInicio.value !== null) {
+                return
+            }
+            arrancarCuentaInicio(5, lanzarTrasCuentaAtras)
+        },
+        onFinish: () => {
+            preparandoInicio.value = false
+        },
+    })
 }
 const finalizar = () => router.post(`/partidas/${props.partida.id}/finalizar`)
 
@@ -374,8 +431,8 @@ if (estado.value === 'mostrando_resultados') {
                     <button
                         class="btn-cosmo w-full py-4 text-xl"
                         type="button"
-                        :disabled="!jugadores.length || cuentaAtrasInicio !== null"
-                        @click="prepararInicio"
+                        :disabled="!jugadores.length || cuentaAtrasInicio !== null || preparandoInicio"
+                        @click.prevent="prepararInicio"
                     >
                         {{ cuentaAtrasInicio !== null ? `Empezando en ${cuentaAtrasInicio}…` : 'Empezar' }}
                     </button>
@@ -431,9 +488,18 @@ if (estado.value === 'mostrando_resultados') {
 .acciones-sala {
     position: sticky;
     bottom: max(0.75rem, env(safe-area-inset-bottom));
-    z-index: 5;
+    z-index: 30;
     margin-top: auto;
     padding-top: 0.5rem;
+    isolation: isolate;
+}
+
+.acciones-sala .btn-cosmo {
+    position: relative;
+    z-index: 31;
+    min-height: 3.25rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .grupo-pin {

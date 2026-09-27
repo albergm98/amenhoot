@@ -48,12 +48,14 @@ withDefaults(
     height: 100%;
     object-fit: cover;
     object-position: center;
+    pointer-events: none;
 }
 
 .velo {
     position: fixed;
     inset: 0;
     z-index: 1;
+    pointer-events: none;
     background:
         linear-gradient(180deg, rgb(6 11 24 / 0.62) 0%, rgb(6 11 24 / 0.84) 45%, rgb(6 11 24 / 0.95) 100%),
         radial-gradient(ellipse 70% 40% at 50% 0%, rgb(148 163 184 / 0.12), transparent);
