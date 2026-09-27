@@ -5,14 +5,17 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --ignore-platform-reqs --no-scripts
 
-FROM php:8.4-cli-alpine AS frontend
+# Node oficial + PHP CLI para Wayfinder durante el build de assets
+FROM node:22-bookworm-slim AS frontend
 
-RUN apk add --no-cache nodejs npm icu-dev libzip-dev \
-    && docker-php-ext-install zip intl
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends php-cli php-xml php-mbstring php-curl php-zip unzip ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 COPY --from=vendor /app/vendor ./vendor
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock artisan ./
 COPY app ./app
 COPY bootstrap ./bootstrap
@@ -24,10 +27,21 @@ COPY vite.config.ts tsconfig.json ./
 COPY resources ./resources
 COPY public ./public
 
-RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+# .env mínimo para artisan/wayfinder en build
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && printf '%s\n' \
+        'APP_NAME=Amenhoot' \
+        'APP_ENV=production' \
+        'APP_KEY=base64:G4Oqem/1oZq9F3ywt5BjnABXK2zU454qDXyvDXQe3MU=' \
+        'APP_DEBUG=false' \
+        'APP_URL=http://localhost' \
+        'DB_CONNECTION=sqlite' \
+        'BROADCAST_CONNECTION=log' \
+      > .env \
+    && touch database/database.sqlite \
     && php artisan package:discover --ansi \
-    && npm install \
-    && npm run build
+    && npm install --no-audit --no-fund \
+    && npx vite build
 
 FROM php:8.4-fpm-alpine
 
