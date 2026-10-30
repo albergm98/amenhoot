@@ -2,8 +2,12 @@
 withDefaults(
     defineProps<{
         marcaArriba?: boolean
+        fondo?: string
     }>(),
-    { marcaArriba: true },
+    {
+        marcaArriba: true,
+        fondo: '/assets/img/fondo-amenhoot.jpg',
+    },
 )
 </script>
 
@@ -11,7 +15,7 @@ withDefaults(
     <div class="pantalla">
         <img
             class="fondo"
-            src="/assets/img/fondo-amenhoot.jpg"
+            :src="fondo"
             alt=""
             width="1600"
             height="1067"
@@ -37,6 +41,7 @@ withDefaults(
     position: relative;
     min-height: 100dvh;
     overflow-x: hidden;
+    overflow-y: visible;
     background: #060b18;
 }
 
@@ -100,6 +105,7 @@ withDefaults(
     position: relative;
     z-index: 2;
     min-height: 100dvh;
+    height: 100%;
 }
 
 .capa.con-marca {

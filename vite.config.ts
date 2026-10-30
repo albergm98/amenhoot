@@ -14,8 +14,11 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: !esProduccion,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                bunny('Montserrat', {
+                    weights: [500, 600, 700, 800],
+                }),
+                bunny('Roboto', {
+                    weights: [400, 500, 700],
                 }),
             ],
         }),
