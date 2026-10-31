@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'clave_anfitrion' => env('AMENHOOT_CLAVE_ANFITRION', '000001'),
     'voicestudio' => [
         'url' => env('VOICESTUDIO_URL', 'http://127.0.0.1:3900'),
         'voice' => env('VOICESTUDIO_VOICE', 'default'),

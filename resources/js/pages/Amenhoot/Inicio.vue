@@ -11,7 +11,7 @@ import { Head, Link } from '@inertiajs/vue3'
                 <p class="font-display text-2xl font-bold tracking-tight text-slate-50">Amenhoot</p>
                 <p class="text-sm text-slate-300">Quiz en vivo con PIN · responde rápido</p>
                 <Link href="/unirse" class="btn-cosmo w-full justify-center py-3.5 text-lg">Unirme con PIN</Link>
-                <Link href="/cuestionarios" class="btn-ghost w-full justify-center py-3.5 text-lg">Soy anfitrión</Link>
+                <Link href="/anfitrion/acceso" class="btn-ghost w-full justify-center py-3.5 text-lg">Soy anfitrión</Link>
                 <Link href="/" class="block text-sm text-slate-400 underline-offset-2 hover:underline">
                     Volver a elegir juego
                 </Link>

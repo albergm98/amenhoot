@@ -15,6 +15,10 @@ use App\Support\Anfitrion;
 use App\Support\CatalogoPersonas;
 use Illuminate\Support\Facades\Event;
 
+beforeEach(function () {
+    conAccesoAnfitrion();
+});
+
 test('iniciar pregunta emite PreguntaIniciada', function () {
     Event::fake([PreguntaIniciada::class]);
 

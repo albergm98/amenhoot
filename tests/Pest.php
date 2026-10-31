@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Anfitrion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +45,7 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function conAccesoAnfitrion(): void
 {
-    // ..
+    test()->withSession([Anfitrion::SESION_ACCESO => true]);
 }
