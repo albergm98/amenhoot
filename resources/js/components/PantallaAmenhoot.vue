@@ -13,15 +13,18 @@ withDefaults(
 
 <template>
     <div class="pantalla">
-        <img
-            class="fondo"
-            :src="fondo"
-            alt=""
-            width="1600"
-            height="1067"
-            decoding="async"
-            aria-hidden="true"
-        />
+        <slot name="fondo">
+            <img
+                v-if="fondo"
+                class="fondo"
+                :src="fondo"
+                alt=""
+                width="1600"
+                height="1067"
+                decoding="async"
+                aria-hidden="true"
+            />
+        </slot>
         <div class="velo" aria-hidden="true" />
 
         <header v-if="marcaArriba" class="cabecera-marca" aria-label="Amenhoot">
@@ -39,9 +42,9 @@ withDefaults(
 <style scoped>
 .pantalla {
     position: relative;
-    min-height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: visible;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
     background: #060b18;
 }
 
@@ -104,8 +107,9 @@ withDefaults(
 .capa {
     position: relative;
     z-index: 2;
-    min-height: 100dvh;
     height: 100%;
+    max-height: 100%;
+    overflow: hidden;
 }
 
 .capa.con-marca {

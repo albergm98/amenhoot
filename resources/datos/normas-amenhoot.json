@@ -1,0 +1,26 @@
+{
+  "titulo": "Reglas del juego",
+  "cierre": "Cuando el anfitrión pulse Empezar, tendréis 5 segundos para repasarlo.",
+  "reglas": [
+    {
+      "titulo": "Lee y elige",
+      "texto": "Lee la pregunta y pulsa una de las 4 opciones."
+    },
+    {
+      "titulo": "Más rápido, más puntos",
+      "texto": "Si aciertas, cuanto antes respondas, más puntos sumas."
+    },
+    {
+      "titulo": "Si fallas, cero",
+      "texto": "No sumas puntos y se corta tu racha."
+    },
+    {
+      "titulo": "Solución y ranking",
+      "texto": "Cuando todos respondan o acabe el tiempo, veréis la respuesta y la clasificación."
+    },
+    {
+      "titulo": "Podio final",
+      "texto": "Al terminar se revela el 3º, el 2º y el campeón."
+    }
+  ]
+}

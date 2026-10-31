@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $this->call(AmenhootDiversionSeeder::class);
+        $this->call([
+            AmenhootDiversionSeeder::class,
+            AmenhootFisioterapiaSeeder::class,
+        ]);
     }
 }

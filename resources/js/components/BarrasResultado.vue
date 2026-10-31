@@ -13,55 +13,145 @@ const props = defineProps<{
 }>()
 
 const maximo = computed(() => Math.max(1, ...props.barras.map((barra) => barra.total)))
+const colores = ['bg-opcion-a', 'bg-opcion-b', 'bg-opcion-c', 'bg-opcion-d']
+const letras = ['A', 'B', 'C', 'D']
 </script>
 
 <template>
-    <div class="flex flex-col gap-2">
+    <div class="rejilla-barras" role="list" aria-label="Resultado de respuestas">
         <div
-            v-for="barra in barras"
+            v-for="(barra, indice) in barras"
             :key="barra.opcion_id"
-            class="rounded-2xl px-3 py-2.5 transition"
-            :class="barra.es_correcta
-                ? 'borde-correcta bg-ok/15 ring-2 ring-ok/70'
-                : 'border border-white/10 bg-white/[0.04] opacity-70'"
+            class="tarjeta"
+            :class="{ correcta: barra.es_correcta }"
+            role="listitem"
         >
-            <div class="mb-1.5 flex items-center justify-between gap-2 text-sm">
-                <span
-                    class="flex min-w-0 items-center gap-2"
-                    :class="barra.es_correcta ? 'text-ok' : 'text-slate-200'"
-                >
-                    <span
-                        v-if="barra.es_correcta"
-                        class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-ok text-sm text-cosmo-950"
-                        aria-hidden="true"
-                    >
-                        ✓
-                    </span>
-                    <span class="truncate font-medium">{{ barra.texto }}</span>
-                    <span
-                        v-if="barra.es_correcta"
-                        class="shrink-0 rounded-full bg-ok/25 px-2 py-0.5 text-xs uppercase tracking-wide text-ok"
-                    >
-                        Correcta
-                    </span>
-                </span>
-                <span
-                    class="shrink-0 text-base"
-                    :class="barra.es_correcta ? 'text-ok' : 'text-slate-300'"
-                >
-                    {{ barra.total }}
-                </span>
+            <div class="cabecera">
+                <span class="letra" :class="colores[indice % 4]">{{ letras[indice % 4] }}</span>
+                <div class="info">
+                    <span class="texto">{{ barra.texto }}</span>
+                    <span v-if="barra.es_correcta" class="sello">Correcta</span>
+                </div>
+                <span class="votos">{{ barra.total }}</span>
             </div>
-            <div
-                class="h-3 overflow-hidden rounded-full"
-                :class="barra.es_correcta ? 'bg-ok/20' : 'bg-slate-800/80'"
-            >
+            <div class="pista">
                 <div
-                    class="h-full rounded-full transition-all duration-700"
-                    :class="barra.es_correcta ? 'bg-ok shadow-[0_0_12px_rgb(52_211_153_/_.55)]' : 'bg-slate-400'"
+                    class="relleno"
+                    :class="barra.es_correcta ? 'bg-ok' : colores[indice % 4]"
                     :style="{ width: `${(barra.total / maximo) * 100}%` }"
                 />
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.rejilla-barras {
+    display: grid;
+    flex-shrink: 0;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 0.85rem;
+    background: rgb(15 23 42 / 0.55);
+    padding: 0.5rem 0.6rem 0.55rem;
+    backdrop-filter: blur(8px);
+}
+
+.tarjeta.correcta {
+    border-color: rgb(52 211 153 / 0.55);
+    background: rgb(52 211 153 / 0.14);
+    box-shadow: 0 0 0 1px rgb(52 211 153 / 0.2);
+}
+
+.cabecera {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.letra {
+    display: inline-flex;
+    width: 1.55rem;
+    height: 1.55rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.info {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.texto {
+    overflow: hidden;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #f1f5f9;
+}
+
+.tarjeta.correcta .texto {
+    color: #a7f3d0;
+}
+
+.sello {
+    width: fit-content;
+    border-radius: 999px;
+    background: rgb(52 211 153 / 0.22);
+    padding: 0.05rem 0.35rem;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6ee7b7;
+}
+
+.votos {
+    flex-shrink: 0;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.tarjeta.correcta .votos {
+    color: #6ee7b7;
+}
+
+.pista {
+    height: 0.28rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.08);
+}
+
+.relleno {
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.7s ease;
+}
+
+@media (max-width: 360px) {
+    .rejilla-barras {
+        grid-template-columns: 1fr;
+    }
+}
+</style>

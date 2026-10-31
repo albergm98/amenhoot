@@ -7,6 +7,7 @@ use App\Events\PreguntaCerrada;
 use App\Models\Partida;
 use App\Models\Pregunta;
 use App\Models\Respuesta;
+use App\Support\OrdenOpciones;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -44,7 +45,7 @@ final readonly class CierrePregunta
             $partidaCerrada,
             $pregunta,
             $opcionCorrectaId,
-            $this->conteo($pregunta),
+            $this->conteo($pregunta, $partidaCerrada),
             $this->clasificacion($partidaCerrada),
         ));
 
@@ -54,9 +55,13 @@ final readonly class CierrePregunta
     /**
      * @return Collection<int, array{opcion_id: int, texto: string, total: int, es_correcta: bool}>
      */
-    public function conteo(Pregunta $pregunta): Collection
+    public function conteo(Pregunta $pregunta, ?Partida $partida = null): Collection
     {
-        return $pregunta->opciones->map(fn ($opcion) => [
+        $opciones = $partida === null
+            ? $pregunta->opciones
+            : OrdenOpciones::paraPartida($partida, $pregunta);
+
+        return $opciones->map(fn ($opcion) => [
             'opcion_id' => $opcion->id,
             'texto' => $opcion->texto,
             'total' => Respuesta::query()
@@ -64,21 +69,22 @@ final readonly class CierrePregunta
                 ->where('opcion_id', $opcion->id)
                 ->count(),
             'es_correcta' => $opcion->es_correcta,
-        ]);
+        ])->values();
     }
 
     /**
-     * @return Collection<int, array{id: int, apodo: string, puntuacion: int, racha: int}>
+     * @return Collection<int, array{id: int, apodo: string, foto: string|null, puntuacion: int, racha: int}>
      */
     public function clasificacion(Partida $partida): Collection
     {
         return $partida->jugadores()
             ->orderByDesc('puntuacion')
             ->orderBy('id')
-            ->get(['id', 'apodo', 'puntuacion', 'racha'])
+            ->get(['id', 'apodo', 'foto', 'puntuacion', 'racha'])
             ->map(fn ($jugador) => [
                 'id' => $jugador->id,
                 'apodo' => $jugador->apodo,
+                'foto' => $jugador->foto,
                 'puntuacion' => $jugador->puntuacion,
                 'racha' => $jugador->racha,
             ])

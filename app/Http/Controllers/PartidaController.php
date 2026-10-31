@@ -14,6 +14,7 @@ use App\Models\Pregunta;
 use App\Models\Respuesta;
 use App\Services\CierrePregunta;
 use App\Support\Anfitrion;
+use App\Support\OrdenOpciones;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -124,6 +125,7 @@ final class PartidaController extends Controller
             ->map(fn ($jugador) => [
                 'id' => $jugador->id,
                 'apodo' => $jugador->apodo,
+                'foto' => $jugador->foto,
                 'puntuacion' => $jugador->puntuacion,
                 'racha' => $jugador->racha,
                 'equipo' => $jugador->equipo?->nombre,
@@ -194,14 +196,16 @@ final class PartidaController extends Controller
                 'enunciado' => $pregunta->enunciado,
                 'segundos_limite' => $pregunta->segundos_limite,
                 'orden' => $pregunta->orden,
-                'opciones' => $pregunta->opciones->map(fn ($o) => [
-                    'id' => $o->id,
-                    'texto' => $o->texto,
-                    'orden' => $o->orden,
-                    'es_correcta' => $mostrandoResultados ? $o->es_correcta : null,
-                ]),
+                'opciones' => OrdenOpciones::paraPartida($partida, $pregunta)
+                    ->values()
+                    ->map(fn ($o, int $indice) => [
+                        'id' => $o->id,
+                        'texto' => $o->texto,
+                        'orden' => $indice,
+                        'es_correcta' => $mostrandoResultados ? $o->es_correcta : null,
+                    ]),
             ] : null,
-            'conteo_opciones' => $mostrandoResultados && $pregunta ? $cierre->conteo($pregunta) : [],
+            'conteo_opciones' => $mostrandoResultados && $pregunta ? $cierre->conteo($pregunta, $partida) : [],
             'clasificacion' => $mostrandoResultados ? $cierre->clasificacion($partida) : [],
             'total_respuestas' => $pregunta
                 ? Respuesta::query()->where('pregunta_id', $pregunta->id)->count()
@@ -209,6 +213,7 @@ final class PartidaController extends Controller
             'jugadores' => $partida->jugadores->map(fn ($j) => [
                 'id' => $j->id,
                 'apodo' => $j->apodo,
+                'foto' => $j->foto,
                 'puntuacion' => $j->puntuacion,
                 'racha' => $j->racha,
                 'equipo_id' => $j->equipo_id,
@@ -228,6 +233,7 @@ final class PartidaController extends Controller
                     ->map(fn ($j) => [
                         'id' => $j->id,
                         'apodo' => $j->apodo,
+                        'foto' => $j->foto,
                         'puntuacion' => $j->puntuacion,
                         'racha' => $j->racha,
                         'equipo' => $j->equipo?->nombre,

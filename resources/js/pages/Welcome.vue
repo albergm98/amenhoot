@@ -1,11 +1,20 @@
 <script setup lang="ts">
+import FondoCollageBingo from '@/components/FondoCollageBingo.vue'
 import PantallaAmenhoot from '@/components/PantallaAmenhoot.vue'
 import { Head, Link } from '@inertiajs/vue3'
+
+defineProps<{
+    fotosCollage: string[]
+}>()
 </script>
 
 <template>
     <Head title="Stellar Rangers" />
-    <PantallaAmenhoot :marca-arriba="false" fondo="/assets/img/fondo-portada.jpg">
+    <PantallaAmenhoot :marca-arriba="false">
+        <template #fondo>
+            <FondoCollageBingo :fotos="fotosCollage" />
+        </template>
+
         <div class="portada">
             <p class="elige">Elige un juego</p>
             <div class="panel-cosmo flex w-full max-w-md flex-col gap-3">

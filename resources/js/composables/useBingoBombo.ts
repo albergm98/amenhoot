@@ -16,7 +16,39 @@ const barajar = <T>(items: T[]): T[] => {
     return copia
 }
 
-export const useBingoBombo = (catalogo: () => FichaBingo[]) => {
+const nombreArchivo = (url: string): string => {
+    const trozo = url.split('/').pop() ?? ''
+    try {
+        return decodeURIComponent(trozo)
+    } catch {
+        return trozo
+    }
+}
+
+const montarMazo = (catalogo: FichaBingo[], prioridad: string[]): FichaBingo[] => {
+    if (prioridad.length === 0) {
+        return barajar(catalogo)
+    }
+
+    const claves = new Set(prioridad.map((nombre) => nombre.toLowerCase()))
+    const preferidas: FichaBingo[] = []
+    const resto: FichaBingo[] = []
+
+    for (const ficha of catalogo) {
+        if (claves.has(nombreArchivo(ficha.url).toLowerCase())) {
+            preferidas.push(ficha)
+        } else {
+            resto.push(ficha)
+        }
+    }
+
+    return [...barajar(preferidas), ...barajar(resto)]
+}
+
+export const useBingoBombo = (
+    catalogo: () => FichaBingo[],
+    prioridad: () => string[] = () => [],
+) => {
     const pendientes = ref<FichaBingo[]>([])
     const sacadas = ref<FichaBingo[]>([])
     const bolaActual = ref<FichaBingo | null>(null)
@@ -44,7 +76,7 @@ export const useBingoBombo = (catalogo: () => FichaBingo[]) => {
 
     const reiniciar = () => {
         limpiarTemporizador()
-        pendientes.value = barajar(catalogo())
+        pendientes.value = montarMazo(catalogo(), prioridad())
         sacadas.value = []
         bolaActual.value = null
         enMarcha.value = false

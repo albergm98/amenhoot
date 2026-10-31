@@ -17,13 +17,14 @@ use Illuminate\Support\Str;
  * @property int $partida_id
  * @property int|null $equipo_id
  * @property string $apodo
+ * @property string|null $foto
  * @property string $token
  * @property int $puntuacion
  * @property int $racha
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['partida_id', 'equipo_id', 'apodo', 'token', 'puntuacion', 'racha'])]
+#[Fillable(['partida_id', 'equipo_id', 'apodo', 'foto', 'token', 'puntuacion', 'racha'])]
 #[Hidden(['token'])]
 class Jugador extends Model
 {

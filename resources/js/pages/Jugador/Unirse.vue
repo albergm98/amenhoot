@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+type Persona = { clave: string; nombre: string; foto: string }
 
 const props = defineProps<{
     pinInicial?: string | null
+    personas: Persona[]
 }>()
 
 const form = useForm({
     pin: props.pinInicial ?? '',
-    apodo: '',
+    persona: '' as string,
     equipo_id: null as number | null,
 })
 
 const modoEquipos = ref(false)
 const equipos = ref<Array<{ id: number; nombre: string; color: string }>>([])
+const ocupados = ref<string[]>([])
 
 watch(
     () => form.pin,
@@ -21,6 +25,7 @@ watch(
         if (pin.length !== 6) {
             modoEquipos.value = false
             equipos.value = []
+            ocupados.value = []
             return
         }
         try {
@@ -28,15 +33,24 @@ watch(
             const datos = await respuesta.json()
             modoEquipos.value = Boolean(datos.modo_equipos)
             equipos.value = datos.equipos ?? []
+            ocupados.value = datos.ocupados ?? []
             if (!modoEquipos.value) {
                 form.equipo_id = null
             }
+            if (form.persona && ocupados.value.includes(form.persona)) {
+                form.persona = ''
+            }
         } catch {
             modoEquipos.value = false
+            ocupados.value = []
         }
     },
     { immediate: Boolean(props.pinInicial) },
 )
+
+const estaOcupada = (clave: string) => ocupados.value.includes(clave)
+
+const personaElegida = computed(() => props.personas.find((p) => p.clave === form.persona) ?? null)
 
 const unirse = () => form.post('/unirse')
 </script>
@@ -62,7 +76,7 @@ const unirse = () => form.post('/unirse')
         <div class="contenido">
             <header class="cabecera">
                 <h1>¡Únete a la sala!</h1>
-                <p class="subtitulo">PIN + apodo y dentro</p>
+                <p class="subtitulo">PIN + elige tu foto</p>
             </header>
 
             <form class="formulario" @submit.prevent="unirse">
@@ -83,20 +97,31 @@ const unirse = () => form.post('/unirse')
                     <p v-if="form.errors.pin" class="error">{{ form.errors.pin }}</p>
                 </label>
 
-                <label class="bloque">
-                    <span class="etiqueta">Apodo</span>
-                    <input
-                        v-model="form.apodo"
-                        class="entrada entrada-apodo"
-                        maxlength="20"
-                        required
-                        minlength="2"
-                        placeholder="Tu nombre"
-                        aria-label="Apodo"
-                        autocomplete="nickname"
-                    />
-                    <p v-if="form.errors.apodo" class="error">{{ form.errors.apodo }}</p>
-                </label>
+                <fieldset class="personas">
+                    <legend class="etiqueta">¿Quién eres?</legend>
+                    <div class="rejilla" role="listbox" aria-label="Personas">
+                        <button
+                            v-for="persona in personas"
+                            :key="persona.clave"
+                            type="button"
+                            class="persona"
+                            role="option"
+                            :aria-selected="form.persona === persona.clave"
+                            :aria-label="persona.nombre"
+                            :disabled="estaOcupada(persona.clave)"
+                            :class="{
+                                activa: form.persona === persona.clave,
+                                ocupada: estaOcupada(persona.clave),
+                            }"
+                            @click="form.persona = persona.clave"
+                        >
+                            <img :src="persona.foto" :alt="persona.nombre" loading="lazy" decoding="async" />
+                            <span>{{ persona.nombre }}</span>
+                        </button>
+                    </div>
+                    <p v-if="form.errors.persona" class="error">{{ form.errors.persona }}</p>
+                    <p v-else-if="personaElegida" class="aviso">Entrarás como {{ personaElegida.nombre }}</p>
+                </fieldset>
 
                 <fieldset v-if="modoEquipos" class="equipos">
                     <legend class="etiqueta">Equipo</legend>
@@ -113,7 +138,11 @@ const unirse = () => form.post('/unirse')
                     <p v-if="form.errors.equipo_id" class="error">{{ form.errors.equipo_id }}</p>
                 </fieldset>
 
-                <button class="boton-entrar" type="submit" :disabled="form.processing">
+                <button
+                    class="boton-entrar"
+                    type="submit"
+                    :disabled="form.processing || !form.persona"
+                >
                     Entrar a la sala
                 </button>
             </form>
@@ -178,9 +207,9 @@ const unirse = () => form.post('/unirse')
     position: relative;
     z-index: 2;
     display: flex;
-    width: min(100%, 22rem);
+    width: min(100%, 24rem);
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 1.35rem;
 }
 
 .cabecera {
@@ -205,7 +234,7 @@ const unirse = () => form.post('/unirse')
 .formulario {
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
+    gap: 1rem;
 }
 
 .bloque {
@@ -233,10 +262,6 @@ const unirse = () => form.post('/unirse')
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.entrada::placeholder {
-    color: #94a3b8;
-}
-
 .entrada:focus {
     border-color: #64748b;
     box-shadow: 0 0 0 3px rgb(100 116 139 / 0.25);
@@ -248,12 +273,6 @@ const unirse = () => form.post('/unirse')
     letter-spacing: 0.35em;
 }
 
-.entrada-apodo {
-    text-align: center;
-    font-size: 1.35rem;
-    letter-spacing: 0.04em;
-}
-
 .error {
     margin: 0.45rem 0 0;
     font-size: 0.9rem;
@@ -261,10 +280,62 @@ const unirse = () => form.post('/unirse')
     text-align: center;
 }
 
+.aviso {
+    margin: 0.45rem 0 0;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    text-align: center;
+}
+
+.personas,
 .equipos {
     margin: 0;
     border: 0;
     padding: 0;
+}
+
+.rejilla {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.persona {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    border: 2px solid rgb(226 232 240 / 0.2);
+    border-radius: 1rem;
+    background: rgb(15 23 42 / 0.45);
+    padding: 0.4rem 0.25rem 0.45rem;
+    color: #f1f5f9;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.persona img {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    object-fit: cover;
+}
+
+.persona span {
+    font-size: 0.68rem;
+    line-height: 1.1;
+    text-align: center;
+}
+
+.persona.activa {
+    border-color: #e2e8f0;
+    background: rgb(248 250 252 / 0.14);
+    transform: translateY(-1px);
+}
+
+.persona.ocupada {
+    cursor: not-allowed;
+    opacity: 0.38;
 }
 
 .equipo {
@@ -277,7 +348,6 @@ const unirse = () => form.post('/unirse')
     background: rgb(15 23 42 / 0.45);
     padding: 0.8rem 1rem;
     color: #f1f5f9;
-    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .equipo + .equipo {
@@ -297,7 +367,7 @@ const unirse = () => form.post('/unirse')
 }
 
 .boton-entrar {
-    margin-top: 0.35rem;
+    margin-top: 0.2rem;
     width: 100%;
     border: 0;
     border-radius: 999px;
@@ -309,15 +379,6 @@ const unirse = () => form.post('/unirse')
     color: #0f172a;
     cursor: pointer;
     box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
-    transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.boton-entrar:hover {
-    background: #fff;
-}
-
-.boton-entrar:active {
-    transform: scale(0.97);
 }
 
 .boton-entrar:disabled {

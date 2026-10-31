@@ -24,14 +24,15 @@ final readonly class EstadisticasPartida
      *         duracion_segundos: int|null
      *     },
      *     destacados: array{
-     *         mas_rapido: array{id: int, apodo: string, milisegundos: int}|null,
-     *         mas_preciso: array{id: int, apodo: string, porcentaje: float, correctas: int}|null,
-     *         mayor_puntuacion: array{id: int, apodo: string, puntuacion: int}|null,
-     *         mayor_racha: array{id: int, apodo: string, racha: int}|null
+     *         mas_rapido: array{id: int, apodo: string, foto: string|null, milisegundos: int}|null,
+     *         mas_preciso: array{id: int, apodo: string, foto: string|null, porcentaje: float, correctas: int}|null,
+     *         mayor_puntuacion: array{id: int, apodo: string, foto: string|null, puntuacion: int}|null,
+     *         mayor_racha: array{id: int, apodo: string, foto: string|null, racha: int}|null
      *     },
      *     jugadores: list<array{
      *         id: int,
      *         apodo: string,
+     *         foto: string|null,
      *         puntuacion: int,
      *         correctas: int,
      *         fallos: int,
@@ -78,6 +79,7 @@ final readonly class EstadisticasPartida
             $masRapido = $jugadorRapido ? [
                 'id' => $jugadorRapido->id,
                 'apodo' => $jugadorRapido->apodo,
+                'foto' => $jugadorRapido->foto,
                 'milisegundos' => $masRapida->milisegundos,
             ] : null;
         }
@@ -118,17 +120,20 @@ final readonly class EstadisticasPartida
                 'mas_preciso' => $masPreciso ? [
                     'id' => $masPreciso['id'],
                     'apodo' => $masPreciso['apodo'],
+                    'foto' => $masPreciso['foto'],
                     'porcentaje' => $masPreciso['porcentaje_acierto'],
                     'correctas' => $masPreciso['correctas'],
                 ] : null,
                 'mayor_puntuacion' => $mayorPuntuacion ? [
                     'id' => $mayorPuntuacion['id'],
                     'apodo' => $mayorPuntuacion['apodo'],
+                    'foto' => $mayorPuntuacion['foto'],
                     'puntuacion' => $mayorPuntuacion['puntuacion'],
                 ] : null,
                 'mayor_racha' => $mayorRacha && $mayorRacha['racha_maxima'] > 0 ? [
                     'id' => $mayorRacha['id'],
                     'apodo' => $mayorRacha['apodo'],
+                    'foto' => $mayorRacha['foto'],
                     'racha' => $mayorRacha['racha_maxima'],
                 ] : null,
             ],
@@ -141,6 +146,7 @@ final readonly class EstadisticasPartida
      * @return array{
      *     id: int,
      *     apodo: string,
+     *     foto: string|null,
      *     puntuacion: int,
      *     correctas: int,
      *     fallos: int,
@@ -161,6 +167,7 @@ final readonly class EstadisticasPartida
         return [
             'id' => $jugador->id,
             'apodo' => $jugador->apodo,
+            'foto' => $jugador->foto,
             'puntuacion' => $jugador->puntuacion,
             'correctas' => $correctas,
             'fallos' => $fallos,
@@ -191,6 +198,7 @@ final readonly class EstadisticasPartida
             if ($respuesta->es_correcta) {
                 $actual++;
                 $maxima = max($maxima, $actual);
+
                 continue;
             }
             $actual = 0;

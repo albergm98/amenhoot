@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\CatalogoPersonas;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UnirsePartidaRequest extends FormRequest
 {
@@ -18,7 +20,7 @@ class UnirsePartidaRequest extends FormRequest
     {
         return [
             'pin' => ['required', 'string', 'size:6'],
-            'apodo' => ['required', 'string', 'min:2', 'max:20'],
+            'persona' => ['required', 'string', Rule::in(CatalogoPersonas::claves())],
             'equipo_id' => ['nullable', 'integer', 'exists:equipos,id'],
         ];
     }

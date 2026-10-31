@@ -34,6 +34,7 @@ class JugadorUnido implements ShouldBroadcastNow
             'jugador' => [
                 'id' => $this->jugador->id,
                 'apodo' => $this->jugador->apodo,
+                'foto' => $this->jugador->foto,
                 'equipo_id' => $this->jugador->equipo_id,
                 'puntuacion' => $this->jugador->puntuacion,
             ],

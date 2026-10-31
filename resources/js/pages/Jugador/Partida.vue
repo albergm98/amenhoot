@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import PantallaAmenhoot from '@/components/PantallaAmenhoot.vue'
 import BarrasResultado from '@/components/BarrasResultado.vue'
+import FotoJugador from '@/components/FotoJugador.vue'
 import PodioFinal from '@/components/PodioFinal.vue'
 import ReglasJuego from '@/components/ReglasJuego.vue'
 import { usePartidaEnVivo } from '@/composables/usePartidaEnVivo'
@@ -20,6 +21,7 @@ type Barra = {
 type Clasificado = {
     id: number
     apodo: string
+    foto?: string | null
     puntuacion: number
     racha: number
 }
@@ -45,6 +47,7 @@ type Partida = {
 type Jugador = {
     id: number
     apodo: string
+    foto?: string | null
     puntuacion: number
     racha: number
     equipo_id: number | null
@@ -69,7 +72,7 @@ const feedback = ref<'acierto' | 'fallo' | null>(
 )
 const conteoOpciones = ref<Barra[]>([...(props.partida.conteo_opciones ?? [])])
 const clasificacion = ref<Clasificado[]>([...(props.partida.clasificacion ?? [])])
-const podio = ref<Array<{ id: number; apodo: string; puntuacion: number; equipo?: string | null }>>([])
+const podio = ref<Array<{ id: number; apodo: string; foto?: string | null; puntuacion: number; equipo?: string | null }>>([])
 const podioEquipos = ref<Array<{ id: number; nombre: string; color: string; puntuacion: number }> | null>(null)
 const enviando = ref(false)
 const segundosRestantes = ref(0)
@@ -80,6 +83,7 @@ let temporizador: number | null = null
 let pausa: number | null = null
 
 const colores = ['bg-opcion-a', 'bg-opcion-b', 'bg-opcion-c', 'bg-opcion-d']
+const letras = ['A', 'B', 'C', 'D']
 const { silenciado, reproducir, iniciarMusicaSala, pararMusicaSala, alternarSilencio } = useSonido()
 
 const maxConteo = computed(() => Math.max(1, ...conteoOpciones.value.map((barra) => barra.total)))
@@ -256,11 +260,14 @@ const responder = async (opcionId: number) => {
     <Head :title="jugador.apodo" />
     <PantallaAmenhoot :marca-arriba="false">
         <div class="mx-auto flex h-dvh max-w-lg flex-col gap-3 px-4 pb-5 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <header class="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 backdrop-blur-md">
-                <p class="min-w-0 truncate text-sm leading-tight text-slate-50">
-                    {{ jugador.apodo }}
-                    <span class="text-slate-400"> · {{ jugador.puntuacion }} pts</span>
-                    <span v-if="jugador.racha > 1" class="text-slate-300"> · {{ jugador.racha }}×</span>
+            <header class="barra-partida">
+                <p class="flex min-w-0 items-center gap-2 truncate text-sm leading-tight text-slate-50">
+                    <FotoJugador :nombre="jugador.apodo" :foto="jugador.foto" />
+                    <span class="min-w-0 truncate">
+                        {{ jugador.apodo }}
+                        <span class="text-slate-400"> · {{ jugador.puntuacion }} pts</span>
+                        <span v-if="jugador.racha > 1" class="text-amber-200"> · {{ jugador.racha }}×</span>
+                    </span>
                 </p>
                 <p class="marca-inline" aria-label="Amenhoot">
                     <span class="marca-amen">Amen</span><span class="marca-hoot">hoot</span>
@@ -282,44 +289,63 @@ const responder = async (opcionId: number) => {
                 v-if="estado === 'esperando_jugadores'"
                 class="flex flex-1 flex-col gap-4"
             >
-                <p class="text-center text-slate-300">Esperando al anfitrión…</p>
-                <p class="pin-gigante text-center">{{ partida.pin }}</p>
-                <ReglasJuego :cuenta-atras="cuentaAtrasInicio" />
+                <div class="panel-cosmo overflow-hidden text-center">
+                    <p class="text-sm uppercase tracking-[0.14em] text-slate-400">Esperando al anfitrión</p>
+                    <p class="pin-gigante mt-2 px-1">{{ partida.pin }}</p>
+                </div>
+                <ReglasJuego />
             </section>
+
+            <div
+                v-if="cuentaAtrasInicio !== null && cuentaAtrasInicio > 0"
+                class="overlay-cuenta"
+                role="status"
+                aria-live="assertive"
+            >
+                <p class="overlay-etiqueta">Empieza en</p>
+                <p class="overlay-numero">{{ cuentaAtrasInicio }}</p>
+            </div>
 
             <section
                 v-else-if="estado === 'mostrando_pregunta' && pregunta"
                 class="flex min-h-0 flex-1 flex-col gap-3"
             >
                 <div class="flex shrink-0 items-center justify-between gap-3">
-                    <p class="text-sm text-slate-300">
-                        Pregunta {{ pregunta.orden + 1 }} / {{ totalPreguntas }}
+                    <p class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-slate-300">
+                        {{ pregunta.orden + 1 }} / {{ totalPreguntas }}
                     </p>
-                    <p class="text-3xl text-slate-50" aria-live="polite">{{ segundosRestantes }}</p>
+                    <p
+                        class="temporizador-bola"
+                        :class="{ urgente: segundosRestantes <= 5 }"
+                        aria-live="polite"
+                    >
+                        {{ segundosRestantes }}
+                    </p>
                 </div>
-                <h1 class="enunciado-pregunta shrink-0">{{ pregunta.enunciado }}</h1>
-                <div class="mx-auto flex min-h-0 w-full flex-1 flex-col gap-2">
+                <h1 class="enunciado-pregunta shrink-0 px-1">{{ pregunta.enunciado }}</h1>
+                <div class="mx-auto flex min-h-0 w-full flex-1 flex-col gap-2.5">
                     <button
                         v-for="(opcion, indice) in pregunta.opciones"
                         :key="opcion.id"
                         class="btn-respuesta"
                         :class="[
                             colores[indice % 4],
-                            respuesta?.opcion_id === opcion.id ? 'ring-4 ring-white/80' : '',
-                            respuesta && respuesta.opcion_id !== opcion.id ? 'opacity-50' : '',
+                            respuesta?.opcion_id === opcion.id ? 'ring-4 ring-white/85' : '',
+                            respuesta && respuesta.opcion_id !== opcion.id ? 'opacity-45' : '',
                         ]"
                         type="button"
                         :disabled="enviando || !!respuesta"
-                        :aria-label="`Opción ${indice + 1}: ${opcion.texto}`"
+                        :aria-label="`Opción ${letras[indice % 4]}: ${opcion.texto}`"
                         @click="responder(opcion.id)"
                     >
-                        {{ opcion.texto }}
+                        <span class="letra-opcion">{{ letras[indice % 4] }}</span>
+                        <span class="min-w-0 flex-1 text-center">{{ opcion.texto }}</span>
                     </button>
                 </div>
                 <p
                     v-if="feedback && respuesta"
-                    class="shrink-0 text-center text-lg"
-                    :class="feedback === 'acierto' ? 'text-ok' : 'text-ko'"
+                    class="feedback shrink-0 text-center text-lg font-semibold"
+                    :class="feedback === 'acierto' ? 'acierto' : 'fallo'"
                     aria-live="polite"
                 >
                     {{ feedback === 'acierto' ? `¡Correcto! +${respuesta.puntos}` : 'Incorrecto' }}
@@ -328,7 +354,7 @@ const responder = async (opcionId: number) => {
 
             <section
                 v-else-if="estado === 'mostrando_resultados'"
-                class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
+                class="resultados flex min-h-0 flex-1 flex-col gap-3"
             >
                 <BarrasResultado :barras="conteoOpciones" />
                 <PodioFinal
@@ -336,14 +362,20 @@ const responder = async (opcionId: number) => {
                     :podio="clasificacion"
                     :confeti="false"
                     :instantaneo="true"
+                    :compacto="true"
                     titulo="Clasificación"
                 />
-                <p v-if="segundosPausa > 0" class="text-center text-slate-300" aria-live="polite">
+                <p v-if="segundosPausa > 0" class="aviso-siguiente" aria-live="polite">
                     Siguiente en {{ segundosPausa }} s
                 </p>
             </section>
 
-            <PodioFinal v-else-if="estado === 'finalizada'" :podio="podio" :podio-equipos="podioEquipos" />
+            <PodioFinal
+                v-else-if="estado === 'finalizada'"
+                class="min-h-0 flex-1"
+                :podio="podio"
+                :podio-equipos="podioEquipos"
+            />
         </div>
     </PantallaAmenhoot>
 </template>
@@ -364,5 +396,82 @@ const responder = async (opcionId: number) => {
 
 .marca-hoot {
     color: #94a3b8;
+}
+
+.feedback {
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+}
+
+.feedback.acierto {
+    border: 1px solid rgb(52 211 153 / 0.45);
+    background: rgb(52 211 153 / 0.16);
+    color: #6ee7b7;
+}
+
+.feedback.fallo {
+    border: 1px solid rgb(251 113 133 / 0.45);
+    background: rgb(251 113 133 / 0.16);
+    color: #fda4af;
+}
+
+.resultados {
+    overflow: auto;
+    scrollbar-width: none;
+}
+
+.resultados::-webkit-scrollbar {
+    display: none;
+}
+
+.aviso-siguiente {
+    margin: 0;
+    flex-shrink: 0;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 999px;
+    background: rgb(15 23 42 / 0.55);
+    padding: 0.55rem 1rem;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    backdrop-filter: blur(8px);
+}
+
+.overlay-cuenta {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgb(6 11 24 / 0.55);
+    backdrop-filter: blur(14px);
+}
+
+.overlay-etiqueta {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #cbd5e1;
+}
+
+.overlay-numero {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(7rem, 32vw, 12rem);
+    font-weight: 800;
+    line-height: 1;
+    color: #f8fafc;
+    text-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+    animation: latido 1s ease infinite;
+}
+
+@keyframes latido {
+    50% {
+        transform: scale(1.06);
+    }
 }
 </style>

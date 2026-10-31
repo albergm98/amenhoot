@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FotoJugador from '@/components/FotoJugador.vue'
+
 type Resumen = {
     jugadores: number
     preguntas_totales: number
@@ -13,15 +15,16 @@ type Resumen = {
 }
 
 type Destacados = {
-    mas_rapido: { id: number; apodo: string; milisegundos: number } | null
-    mas_preciso: { id: number; apodo: string; porcentaje: number; correctas: number } | null
-    mayor_puntuacion: { id: number; apodo: string; puntuacion: number } | null
-    mayor_racha: { id: number; apodo: string; racha: number } | null
+    mas_rapido: { id: number; apodo: string; foto?: string | null; milisegundos: number } | null
+    mas_preciso: { id: number; apodo: string; foto?: string | null; porcentaje: number; correctas: number } | null
+    mayor_puntuacion: { id: number; apodo: string; foto?: string | null; puntuacion: number } | null
+    mayor_racha: { id: number; apodo: string; foto?: string | null; racha: number } | null
 }
 
 type FilaJugador = {
     id: number
     apodo: string
+    foto?: string | null
     puntuacion: number
     correctas: number
     fallos: number
@@ -96,22 +99,46 @@ const formatearDuracion = (segundos: number | null) => {
         <div class="grid gap-2 sm:grid-cols-2">
             <div v-if="estadisticas.destacados.mas_rapido" class="tarjeta-destaque">
                 <p class="etiqueta">Más rápido</p>
-                <p class="valor-sm">{{ estadisticas.destacados.mas_rapido.apodo }}</p>
+                <p class="valor-sm">
+                    <FotoJugador
+                        :nombre="estadisticas.destacados.mas_rapido.apodo"
+                        :foto="estadisticas.destacados.mas_rapido.foto"
+                    />
+                    {{ estadisticas.destacados.mas_rapido.apodo }}
+                </p>
                 <p class="detalle">{{ formatearMs(estadisticas.destacados.mas_rapido.milisegundos) }}</p>
             </div>
             <div v-if="estadisticas.destacados.mas_preciso" class="tarjeta-destaque">
                 <p class="etiqueta">Más preciso</p>
-                <p class="valor-sm">{{ estadisticas.destacados.mas_preciso.apodo }}</p>
+                <p class="valor-sm">
+                    <FotoJugador
+                        :nombre="estadisticas.destacados.mas_preciso.apodo"
+                        :foto="estadisticas.destacados.mas_preciso.foto"
+                    />
+                    {{ estadisticas.destacados.mas_preciso.apodo }}
+                </p>
                 <p class="detalle">{{ estadisticas.destacados.mas_preciso.porcentaje }}% acierto</p>
             </div>
             <div v-if="estadisticas.destacados.mayor_puntuacion" class="tarjeta-destaque">
                 <p class="etiqueta">Más puntos</p>
-                <p class="valor-sm">{{ estadisticas.destacados.mayor_puntuacion.apodo }}</p>
+                <p class="valor-sm">
+                    <FotoJugador
+                        :nombre="estadisticas.destacados.mayor_puntuacion.apodo"
+                        :foto="estadisticas.destacados.mayor_puntuacion.foto"
+                    />
+                    {{ estadisticas.destacados.mayor_puntuacion.apodo }}
+                </p>
                 <p class="detalle">{{ estadisticas.destacados.mayor_puntuacion.puntuacion }} pts</p>
             </div>
             <div v-if="estadisticas.destacados.mayor_racha" class="tarjeta-destaque">
                 <p class="etiqueta">Mayor racha</p>
-                <p class="valor-sm">{{ estadisticas.destacados.mayor_racha.apodo }}</p>
+                <p class="valor-sm">
+                    <FotoJugador
+                        :nombre="estadisticas.destacados.mayor_racha.apodo"
+                        :foto="estadisticas.destacados.mayor_racha.foto"
+                    />
+                    {{ estadisticas.destacados.mayor_racha.apodo }}
+                </p>
                 <p class="detalle">{{ estadisticas.destacados.mayor_racha.racha }} seguidas</p>
             </div>
         </div>
@@ -138,8 +165,11 @@ const formatearDuracion = (segundos: number | null) => {
                         :class="fila.id === jugadorId ? 'bg-white/10 text-slate-50' : 'text-slate-200'"
                     >
                         <td class="py-2.5 pr-2">
-                            {{ fila.apodo }}
-                            <span v-if="fila.id === jugadorId" class="text-xs text-slate-400"> · tú</span>
+                            <span class="inline-flex items-center gap-2">
+                                <FotoJugador :nombre="fila.apodo" :foto="fila.foto" />
+                                {{ fila.apodo }}
+                                <span v-if="fila.id === jugadorId" class="text-xs text-slate-400"> · tú</span>
+                            </span>
                         </td>
                         <td class="px-2 py-2.5">{{ fila.puntuacion }}</td>
                         <td class="px-2 py-2.5 text-ok">{{ fila.correctas }}</td>
@@ -179,6 +209,9 @@ const formatearDuracion = (segundos: number | null) => {
 }
 
 .valor-sm {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     margin: 0.2rem 0 0;
     font-size: 1.05rem;
     color: #f8fafc;

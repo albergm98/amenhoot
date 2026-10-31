@@ -1,6 +1,6 @@
 import { onUnmounted, ref } from 'vue'
 
-type MotivoVoz = 'linea' | 'bingo'
+type MotivoVoz = 'linea' | 'bingo' | 'continuar'
 
 type SpeechRecognitionLike = {
     lang: string
@@ -44,6 +44,15 @@ const unidades = [
 
 const decenas = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa']
 
+const urlBaseNombres = '/assets/audio/bingo'
+
+/** Frases del juego → fichero WAV en /assets/audio/bingo/ */
+const frasesAudio: Record<string, string> = {
+    'Han cantado bingo': 'bingo.wav',
+    'Han cantado línea': 'linea.wav',
+    Continuamos: 'continuar.wav',
+}
+
 export const numeroEnEspañol = (n: number): string => {
     if (n < 20) {
         return unidades[n] ?? String(n)
@@ -71,6 +80,17 @@ const normalizar = (texto: string): string =>
         .replace(/\s+/g, ' ')
         .trim()
 
+const claveAudioNombre = (nombre: string): string =>
+    nombre
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/[^a-z0-9]+/g, '')
+
+export const rutaAudioNombreBingo = (nombre: string): string =>
+    `${urlBaseNombres}/${claveAudioNombre(nombre)}.wav`
+
 const obtenerReconocimiento = (): (new () => SpeechRecognitionLike) | null => {
     const w = window as Window & {
         SpeechRecognition?: new () => SpeechRecognitionLike
@@ -90,9 +110,44 @@ export const useVozBingo = () => {
     let debeEscuchar = false
     let alDetectar: ((motivo: MotivoVoz) => void) | null = null
     let ignorarHasta = 0
+    let audioActual: HTMLAudioElement | null = null
 
-    const cantarTexto = (texto: string): Promise<void> => {
-        if (silenciado.value || typeof window === 'undefined' || !window.speechSynthesis) {
+    const limpiarAudio = () => {
+        if (!audioActual) {
+            return
+        }
+        audioActual.onended = null
+        audioActual.onerror = null
+        audioActual.pause()
+        audioActual.src = ''
+        audioActual = null
+    }
+
+    const marcarFinHabla = () => {
+        hablando.value = false
+        ignorarHasta = Date.now() + 400
+    }
+
+    const reproducirArchivo = (ruta: string): Promise<boolean> =>
+        new Promise((resolver) => {
+            const audio = new Audio(ruta)
+            audioActual = audio
+            audio.onended = () => {
+                limpiarAudio()
+                resolver(true)
+            }
+            audio.onerror = () => {
+                limpiarAudio()
+                resolver(false)
+            }
+            void audio.play().catch(() => {
+                limpiarAudio()
+                resolver(false)
+            })
+        })
+
+    const cantarConSintesis = (texto: string): Promise<void> => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) {
             return Promise.resolve()
         }
         window.speechSynthesis.cancel()
@@ -104,22 +159,61 @@ export const useVozBingo = () => {
 
         return new Promise((resolver) => {
             utterance.onend = () => {
-                hablando.value = false
-                ignorarHasta = Date.now() + 400
+                marcarFinHabla()
                 resolver()
             }
             utterance.onerror = () => {
-                hablando.value = false
-                ignorarHasta = Date.now() + 400
+                marcarFinHabla()
                 resolver()
             }
             window.speechSynthesis.speak(utterance)
         })
     }
 
+    const cantarTexto = async (texto: string): Promise<void> => {
+        if (silenciado.value) {
+            return
+        }
+        limpiarAudio()
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.cancel()
+        }
+
+        const fichero = frasesAudio[texto.trim()]
+        if (fichero) {
+            hablando.value = true
+            ignorarHasta = Date.now() + 5000
+            const ok = await reproducirArchivo(`${urlBaseNombres}/${fichero}`)
+            if (ok) {
+                marcarFinHabla()
+                return
+            }
+        }
+
+        await cantarConSintesis(texto)
+    }
+
     const cantarNumero = (bola: number): Promise<void> => cantarTexto(`Número ${numeroEnEspañol(bola)}`)
 
-    const cantarImagen = (nombre: string): Promise<void> => cantarTexto(nombre.trim() || 'Desconocido')
+    const cantarImagen = async (nombre: string): Promise<void> => {
+        if (silenciado.value) {
+            return
+        }
+        const limpio = nombre.trim() || 'Desconocido'
+        limpiarAudio()
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.cancel()
+        }
+
+        hablando.value = true
+        ignorarHasta = Date.now() + 4000
+        const ok = await reproducirArchivo(rutaAudioNombreBingo(limpio))
+        if (ok) {
+            marcarFinHabla()
+            return
+        }
+        await cantarConSintesis(limpio)
+    }
 
     const procesarTexto = (texto: string) => {
         if (Date.now() < ignorarHasta || hablando.value) {
@@ -127,6 +221,10 @@ export const useVozBingo = () => {
         }
         const limpio = normalizar(texto)
         if (!limpio) {
+            return
+        }
+        if (/\b(continua|continuar|sigue|seguir|reanuda|reanudar|adelante)\b/.test(limpio)) {
+            alDetectar?.('continuar')
             return
         }
         if (/\bbingo\b/.test(limpio)) {
@@ -166,7 +264,7 @@ export const useVozBingo = () => {
         }
         reconocimiento.onerror = (evento) => {
             if (evento.error === 'not-allowed') {
-                microError.value = 'Permite el micrófono para detectar línea o bingo.'
+                microError.value = 'Permite el micrófono para línea, bingo o continuar.'
                 microActivo.value = false
                 debeEscuchar = false
             }
@@ -207,14 +305,18 @@ export const useVozBingo = () => {
 
     const alternarSilencio = () => {
         silenciado.value = !silenciado.value
-        if (silenciado.value && window.speechSynthesis) {
-            window.speechSynthesis.cancel()
+        if (silenciado.value) {
+            limpiarAudio()
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel()
+            }
             hablando.value = false
         }
     }
 
     onUnmounted(() => {
         pararMicro()
+        limpiarAudio()
         if (window.speechSynthesis) {
             window.speechSynthesis.cancel()
         }
@@ -234,5 +336,6 @@ export const useVozBingo = () => {
         onPalabraClave,
         alternarSilencio,
         numeroEnEspañol,
+        rutaAudioNombreBingo,
     }
 }

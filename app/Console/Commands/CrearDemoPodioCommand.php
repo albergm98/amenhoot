@@ -9,6 +9,7 @@ use App\Models\Opcion;
 use App\Models\Partida;
 use App\Models\Pregunta;
 use App\Models\User;
+use App\Support\CatalogoPersonas;
 use Illuminate\Console\Command;
 
 final class CrearDemoPodioCommand extends Command
@@ -53,15 +54,17 @@ final class CrearDemoPodioCommand extends Command
             'modo_equipos' => false,
         ]);
 
-        $apodos = ['Joseja', 'Manu', 'Pablo', 'Lucía', 'Hugo', 'Sofía', 'Leo', 'Emma'];
+        $personas = CatalogoPersonas::todas();
         $puntos = [9800, 8400, 7200, 6100, 4800, 3500, 2200, 900];
 
-        foreach ($apodos as $indice => $apodo) {
+        foreach ($puntos as $indice => $puntuacion) {
+            $persona = $personas[$indice % count($personas)];
             Jugador::query()->create([
                 'partida_id' => $partida->id,
-                'apodo' => $apodo,
+                'apodo' => $persona['nombre'],
+                'foto' => $persona['foto'],
                 'token' => Jugador::generarToken(),
-                'puntuacion' => $puntos[$indice],
+                'puntuacion' => $puntuacion,
                 'racha' => fake()->numberBetween(0, 4),
             ]);
         }

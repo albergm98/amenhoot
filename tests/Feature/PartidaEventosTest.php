@@ -12,6 +12,7 @@ use App\Models\Opcion;
 use App\Models\Partida;
 use App\Models\Pregunta;
 use App\Support\Anfitrion;
+use App\Support\CatalogoPersonas;
 use Illuminate\Support\Facades\Event;
 
 test('iniciar pregunta emite PreguntaIniciada', function () {
@@ -84,9 +85,11 @@ test('unirse emite JugadorUnido', function () {
         ->for(Cuestionario::factory()->for(Anfitrion::usuario()))
         ->create();
 
+    $persona = CatalogoPersonas::todas()[0];
+
     $this->post(route('jugador.unirse.guardar'), [
         'pin' => $partida->pin,
-        'apodo' => 'Eco',
+        'persona' => $persona['clave'],
     ])->assertRedirect();
 
     Event::assertDispatched(JugadorUnido::class);

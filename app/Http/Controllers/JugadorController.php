@@ -13,6 +13,8 @@ use App\Models\Partida;
 use App\Models\Respuesta;
 use App\Services\CalculadoraPuntos;
 use App\Services\CierrePregunta;
+use App\Support\CatalogoPersonas;
+use App\Support\OrdenOpciones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +27,7 @@ final class JugadorController extends Controller
     {
         return Inertia::render('Jugador/Unirse', [
             'pinInicial' => $request->query('pin'),
+            'personas' => CatalogoPersonas::todas(),
         ]);
     }
 
@@ -36,32 +39,38 @@ final class JugadorController extends Controller
             ->first();
 
         if ($partida === null) {
-            return back()->withErrors(['pin' => 'PIN no válido.'])->onlyInput('pin', 'apodo');
+            return back()->withErrors(['pin' => 'PIN no válido.'])->onlyInput('pin', 'persona');
         }
 
         if ($partida->estado !== EstadoPartida::EsperandoJugadores) {
-            return back()->withErrors(['pin' => 'La partida ya ha empezado.'])->onlyInput('pin', 'apodo');
+            return back()->withErrors(['pin' => 'La partida ya ha empezado.'])->onlyInput('pin', 'persona');
+        }
+
+        $persona = CatalogoPersonas::porClave($request->validated('persona'));
+        if ($persona === null) {
+            return back()->withErrors(['persona' => 'Elige una persona.'])->onlyInput('pin', 'persona');
         }
 
         $apodoExiste = $partida->jugadores()
-            ->whereRaw('LOWER(apodo) = ?', [mb_strtolower($request->validated('apodo'))])
+            ->whereRaw('LOWER(apodo) = ?', [mb_strtolower($persona['nombre'])])
             ->exists();
 
         if ($apodoExiste) {
-            return back()->withErrors(['apodo' => 'Ese apodo ya está en uso.'])->onlyInput('pin', 'apodo');
+            return back()->withErrors(['persona' => 'Esa persona ya está en la sala.'])->onlyInput('pin', 'persona');
         }
 
         $equipoId = $request->validated('equipo_id');
         if ($partida->modo_equipos) {
             if ($equipoId === null || ! $partida->equipos->contains('id', $equipoId)) {
-                return back()->withErrors(['equipo_id' => 'Elige un equipo.'])->onlyInput('pin', 'apodo');
+                return back()->withErrors(['equipo_id' => 'Elige un equipo.'])->onlyInput('pin', 'persona');
             }
         } else {
             $equipoId = null;
         }
 
         $jugador = $partida->jugadores()->create([
-            'apodo' => $request->validated('apodo'),
+            'apodo' => $persona['nombre'],
+            'foto' => $persona['foto'],
             'equipo_id' => $equipoId,
             'token' => Jugador::generarToken(),
         ]);
@@ -106,19 +115,22 @@ final class JugadorController extends Controller
                         'enunciado' => $pregunta->enunciado,
                         'segundos_limite' => $pregunta->segundos_limite,
                         'orden' => $pregunta->orden,
-                        'opciones' => $pregunta->opciones->map(fn ($o) => [
-                            'id' => $o->id,
-                            'texto' => $o->texto,
-                            'orden' => $o->orden,
-                        ]),
+                        'opciones' => OrdenOpciones::paraPartida($partida, $pregunta)
+                            ->values()
+                            ->map(fn ($o, int $indice) => [
+                                'id' => $o->id,
+                                'texto' => $o->texto,
+                                'orden' => $indice,
+                            ]),
                     ]
                     : null,
-                'conteo_opciones' => $mostrandoResultados && $pregunta ? $cierre->conteo($pregunta) : [],
+                'conteo_opciones' => $mostrandoResultados && $pregunta ? $cierre->conteo($pregunta, $partida) : [],
                 'clasificacion' => $mostrandoResultados ? $cierre->clasificacion($partida) : [],
             ],
             'jugador' => [
                 'id' => $jugador->id,
                 'apodo' => $jugador->apodo,
+                'foto' => $jugador->foto,
                 'puntuacion' => $jugador->puntuacion,
                 'racha' => $jugador->racha,
                 'equipo_id' => $jugador->equipo_id,
@@ -202,11 +214,21 @@ final class JugadorController extends Controller
 
     public function equiposPorPin(string $pin): JsonResponse
     {
-        $partida = Partida::query()->with('equipos')->where('pin', $pin)->first();
+        $partida = Partida::query()->with(['equipos', 'jugadores'])->where('pin', $pin)->first();
 
         if ($partida === null || $partida->estado !== EstadoPartida::EsperandoJugadores) {
-            return response()->json(['equipos' => [], 'modo_equipos' => false]);
+            return response()->json(['equipos' => [], 'modo_equipos' => false, 'ocupados' => []]);
         }
+
+        $ocupados = $partida->jugadores
+            ->map(function (Jugador $jugador): ?string {
+                $persona = CatalogoPersonas::porClave(mb_strtolower($jugador->apodo));
+
+                return $persona === null ? null : $persona['clave'];
+            })
+            ->filter()
+            ->values()
+            ->all();
 
         return response()->json([
             'modo_equipos' => $partida->modo_equipos,
@@ -215,6 +237,7 @@ final class JugadorController extends Controller
                 'nombre' => $e->nombre,
                 'color' => $e->color,
             ]),
+            'ocupados' => $ocupados,
         ]);
     }
 

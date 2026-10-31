@@ -46,6 +46,62 @@ final class CatalogoBingo
             ->all();
     }
 
+    /**
+     * Fotos que salen primero en /bingo/1 (barajadas entre sí; el resto después al azar).
+     *
+     * @return list<string> nombres de archivo sin carpeta
+     */
+    public static function secuenciaAmanada(): array
+    {
+        return [
+            'paula10.jpeg',
+            'sara4.jpeg',
+            'alberto5.jpeg',
+            'alberto6.jpeg',
+            'pablo6.jpeg',
+            'joseja10.jpeg',
+            'edu10.jpeg',
+            'edu7.jpeg',
+            'eva8.jpeg',
+            'eva1.jpeg',
+            'manu1.jpeg',
+            'manu7.jpeg',
+            'luis6.jpeg',
+            'luis10.jpeg',
+        ];
+    }
+
+    /**
+     * Muestra para el collage de la portada: una foto por persona y relleno del resto.
+     *
+     * @return list<string>
+     */
+    public static function muestraCollage(int $cantidad = 30): array
+    {
+        $imagenes = collect(self::imagenes());
+        if ($imagenes->isEmpty()) {
+            return [];
+        }
+
+        $porPersona = $imagenes
+            ->filter(fn (array $ficha): bool => preg_match('/^[\p{L}]+$/u', $ficha['columna']) === 1)
+            ->groupBy('columna')
+            ->map(fn ($fichas) => $fichas->first()['url']);
+
+        $elegidas = $porPersona->values();
+        $restantes = $imagenes
+            ->pluck('url')
+            ->reject(fn (string $url) => $elegidas->contains($url))
+            ->shuffle()
+            ->values();
+
+        return $elegidas
+            ->concat($restantes)
+            ->take(max(1, $cantidad))
+            ->values()
+            ->all();
+    }
+
     private static function claveColumna(string $nombre): string
     {
         $base = pathinfo($nombre, PATHINFO_FILENAME);

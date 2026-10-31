@@ -19,6 +19,7 @@ class JugadorFactory extends Factory
             'partida_id' => Partida::factory(),
             'equipo_id' => null,
             'apodo' => fake()->unique()->userName(),
+            'foto' => null,
             'token' => Jugador::generarToken(),
             'puntuacion' => 0,
             'racha' => 0,

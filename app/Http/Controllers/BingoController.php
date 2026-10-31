@@ -8,10 +8,11 @@ use Inertia\Response;
 
 final class BingoController extends Controller
 {
-    public function sala(): Response
+    public function sala(?int $codigo = null): Response
     {
         return Inertia::render('Bingo/Sala', [
             'imagenes' => CatalogoBingo::imagenes(),
+            'prioridad' => $codigo === 1 ? CatalogoBingo::secuenciaAmanada() : [],
         ]);
     }
 }

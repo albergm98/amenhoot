@@ -4,11 +4,14 @@ use App\Http\Controllers\BingoController;
 use App\Http\Controllers\CuestionarioController;
 use App\Http\Controllers\JugadorController;
 use App\Http\Controllers\PartidaController;
+use App\Http\Controllers\PortadaController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', PortadaController::class)->name('home');
 Route::inertia('/amenhoot', 'Amenhoot/Inicio')->name('amenhoot.inicio');
-Route::get('/bingo', [BingoController::class, 'sala'])->name('bingo.sala');
+Route::get('/bingo/{codigo?}', [BingoController::class, 'sala'])
+    ->whereNumber('codigo')
+    ->name('bingo.sala');
 
 Route::get('/unirse', [JugadorController::class, 'formularioUnirse'])->name('jugador.unirse');
 Route::post('/unirse', [JugadorController::class, 'unirse'])->name('jugador.unirse.guardar');

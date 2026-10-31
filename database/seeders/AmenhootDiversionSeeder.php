@@ -34,7 +34,8 @@ final class AmenhootDiversionSeeder extends Seeder
                 'orden' => $orden,
             ]);
 
-            foreach ($datos['opciones'] as $ordenOpcion => $opcion) {
+            $opciones = collect($datos['opciones'])->shuffle()->values();
+            foreach ($opciones as $ordenOpcion => $opcion) {
                 $pregunta->opciones()->create([
                     'texto' => $opcion['texto'],
                     'es_correcta' => $opcion['correcta'],
